@@ -197,3 +197,110 @@ async def test_message(agent, streaming):
     assert not all_errors, f"Message validation failed:\n" + "\n".join(all_errors)
 
 # Add your custom tests here
+
+
+def extract_response_text(events) -> str:
+    """Extract response text from A2A events."""
+    response_text = ""
+    for event in events:
+        match event:
+            case (task, update):
+                if task.artifacts:
+                    for artifact in task.artifacts:
+                        for part in artifact.parts:
+                            if hasattr(part, 'root') and hasattr(part.root, 'text'):
+                                response_text += part.root.text
+    return response_text
+
+
+@pytest.mark.asyncio
+async def test_green_agent_help_command(agent):
+    """Test that Green Agent (Assessor) returns help information."""
+    events = await send_text_message("help", agent, streaming=False)
+    
+    # Verify we got a response
+    assert events, "Agent should respond with at least one event"
+    
+    # Get the response text
+    response_text = extract_response_text(events)
+    
+    # Verify response contains expected assessor content
+    assert "Green Agent" in response_text, "Response should identify as Green Agent"
+    assert "Assessor" in response_text or "assessment" in response_text.lower(), "Response should mention assessment functionality"
+    assert "start" in response_text.lower(), "Response should mention start command"
+
+
+@pytest.mark.asyncio
+async def test_green_agent_start_assessment(agent):
+    """Test that Green Agent can start an assessment session."""
+    events = await send_text_message("start", agent, streaming=False)
+    
+    assert events, "Agent should respond with at least one event"
+    
+    response_text = extract_response_text(events)
+    
+    # Response should contain assessment start information
+    assert "Assessment Started" in response_text or "assessment" in response_text.lower(), "Response should confirm assessment started"
+    assert "next" in response_text.lower(), "Response should mention next command"
+
+
+def test_green_agent_card_has_proper_metadata(agent):
+    """Test that agent card has proper Green Agent (Assessor) metadata."""
+    response = httpx.get(f"{agent}/.well-known/agent-card.json")
+    assert response.status_code == 200
+    
+    card_data = response.json()
+    
+    # Verify green agent specific fields
+    assert "Green Agent" in card_data.get("name", ""), "Agent name should contain 'Green Agent'"
+    assert "assess" in card_data.get("description", "").lower() or "evaluat" in card_data.get("description", "").lower(), "Description should mention assessment/evaluation"
+    
+    # Verify skills
+    skills = card_data.get("skills", [])
+    assert len(skills) > 0, "Agent should have at least one skill"
+    
+    skill = skills[0]
+    assert skill.get("id") == "assessment", "Skill ID should be 'assessment'"
+    tags = skill.get("tags", [])
+    assert "assessment" in tags or "evaluation" in tags, "Skill should have assessment-related tags"
+
+
+@pytest.mark.asyncio
+async def test_green_agent_get_next_task(agent):
+    """Test that Green Agent can provide tasks after starting an assessment."""
+    # Start an assessment first
+    context_id = uuid4().hex
+    await send_text_message("start", agent, context_id=context_id, streaming=False)
+    
+    # Get next task
+    events = await send_text_message("next", agent, context_id=context_id, streaming=False)
+    
+    assert events, "Agent should respond with at least one event"
+    response_text = extract_response_text(events)
+    
+    # Response should contain task information
+    assert "Task" in response_text, "Response should contain task"
+    assert "Points" in response_text or "points" in response_text.lower(), "Response should mention points"
+
+
+@pytest.mark.asyncio
+async def test_green_agent_submit_answer(agent):
+    """Test that Green Agent can evaluate submitted answers."""
+    context_id = uuid4().hex
+    
+    # Start assessment
+    await send_text_message("start", agent, context_id=context_id, streaming=False)
+    
+    # Get a task
+    await send_text_message("next", agent, context_id=context_id, streaming=False)
+    
+    # Submit an answer
+    events = await send_text_message("submit: 105", agent, context_id=context_id, streaming=False)
+    
+    assert events, "Agent should respond with at least one event"
+    response_text = extract_response_text(events)
+    
+    # Response should contain evaluation result
+    assert "Evaluation" in response_text or "Correct" in response_text or "Incorrect" in response_text, \
+        "Response should contain evaluation result"
+    assert "Points" in response_text or "points" in response_text.lower(), "Response should mention points"

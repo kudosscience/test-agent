@@ -20,20 +20,28 @@ def main():
     parser.add_argument("--card-url", type=str, help="URL to advertise in the agent card")
     args = parser.parse_args()
 
-    # Fill in your agent card
-    # See: https://a2a-protocol.org/latest/tutorials/python/3-agent-skills-and-card/
+    # Green Agent (Assessor) Card Configuration for AgentBeats
+    # See: https://agentbeats.dev/
+    # Green Agent = Assessment/Evaluator that sets tasks, scores results
     
     skill = AgentSkill(
-        id="",
-        name="",
-        description="",
-        tags=[],
-        examples=[]
+        id="assessment",
+        name="Agent Assessment",
+        description="Evaluates participant agents by setting tasks, scoring results, and providing structured feedback. Supports math, reasoning, knowledge, and coding assessments.",
+        tags=["assessment", "evaluation", "benchmark", "agentbeats", "green-agent", "scoring"],
+        examples=[
+            "start",
+            "next",
+            "submit: 105",
+            "score",
+            "end",
+            "help",
+        ]
     )
 
     agent_card = AgentCard(
-        name="",
-        description="",
+        name="Green Agent (Assessor)",
+        description="An AgentBeats Green Agent that evaluates participant agents. Sets tasks, scores results, and provides structured assessment feedback. Supports math, reasoning, knowledge, and coding evaluations.",
         url=args.card_url or f"http://{args.host}:{args.port}/",
         version='1.0.0',
         default_input_modes=['text'],
