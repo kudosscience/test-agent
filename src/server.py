@@ -20,20 +20,26 @@ def main():
     parser.add_argument("--card-url", type=str, help="URL to advertise in the agent card")
     args = parser.parse_args()
 
-    # Fill in your agent card
+    # Green Agent Card Configuration
     # See: https://a2a-protocol.org/latest/tutorials/python/3-agent-skills-and-card/
     
     skill = AgentSkill(
-        id="",
-        name="",
-        description="",
-        tags=[],
-        examples=[]
+        id="green-advice",
+        name="Green Advice",
+        description="Provides eco-friendly tips and sustainability advice to help reduce environmental impact",
+        tags=["environment", "sustainability", "eco-friendly", "green", "tips", "advice"],
+        examples=[
+            "Give me a green tip",
+            "How can I save water?",
+            "What can I do to reduce plastic waste?",
+            "Tips for saving energy at home",
+            "How can I be more eco-friendly?",
+        ]
     )
 
     agent_card = AgentCard(
-        name="",
-        description="",
+        name="Green Agent",
+        description="An eco-friendly assistant that provides sustainability tips and environmental advice to help you live a greener life. Ask about water conservation, energy saving, recycling, and more!",
         url=args.card_url or f"http://{args.host}:{args.port}/",
         version='1.0.0',
         default_input_modes=['text'],

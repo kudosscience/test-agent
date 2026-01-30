@@ -197,3 +197,70 @@ async def test_message(agent, streaming):
     assert not all_errors, f"Message validation failed:\n" + "\n".join(all_errors)
 
 # Add your custom tests here
+
+
+@pytest.mark.asyncio
+async def test_green_agent_returns_eco_tip(agent):
+    """Test that green agent returns an eco-friendly tip."""
+    events = await send_text_message("Give me a green tip", agent, streaming=False)
+    
+    # Verify we got a response
+    assert events, "Agent should respond with at least one event"
+    
+    # Get the response text
+    response_text = ""
+    for event in events:
+        match event:
+            case (task, update):
+                if task.artifacts:
+                    for artifact in task.artifacts:
+                        for part in artifact.parts:
+                            if hasattr(part, 'root') and hasattr(part.root, 'text'):
+                                response_text += part.root.text
+    
+    # Verify response contains expected green content
+    assert "Green Agent" in response_text or "🌍" in response_text, "Response should be from Green Agent"
+    assert "planet" in response_text.lower() or "environment" in response_text.lower() or any(
+        emoji in response_text for emoji in ["🌱", "🌿", "🌳", "♻️", "💡", "💧", "🚲", "🌻"]
+    ), "Response should contain environmental content"
+
+
+@pytest.mark.asyncio
+async def test_green_agent_water_topic(agent):
+    """Test that green agent responds to water-related queries."""
+    events = await send_text_message("How can I save water?", agent, streaming=False)
+    
+    assert events, "Agent should respond with at least one event"
+    
+    response_text = ""
+    for event in events:
+        match event:
+            case (task, update):
+                if task.artifacts:
+                    for artifact in task.artifacts:
+                        for part in artifact.parts:
+                            if hasattr(part, 'root') and hasattr(part.root, 'text'):
+                                response_text += part.root.text
+    
+    # Response should contain relevant content
+    assert len(response_text) > 0, "Response should not be empty"
+
+
+def test_green_agent_card_has_proper_metadata(agent):
+    """Test that agent card has proper green agent metadata."""
+    response = httpx.get(f"{agent}/.well-known/agent-card.json")
+    assert response.status_code == 200
+    
+    card_data = response.json()
+    
+    # Verify green agent specific fields
+    assert card_data.get("name") == "Green Agent", "Agent name should be 'Green Agent'"
+    assert "eco" in card_data.get("description", "").lower() or "environment" in card_data.get("description", "").lower() or "green" in card_data.get("description", "").lower(), "Description should mention environmental focus"
+    
+    # Verify skills
+    skills = card_data.get("skills", [])
+    assert len(skills) > 0, "Agent should have at least one skill"
+    
+    skill = skills[0]
+    assert skill.get("id") == "green-advice", "Skill ID should be 'green-advice'"
+    assert "environment" in skill.get("tags", []) or "sustainability" in skill.get("tags", []), "Skill should have environmental tags"
