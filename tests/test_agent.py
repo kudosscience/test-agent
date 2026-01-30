@@ -263,3 +263,44 @@ def test_green_agent_card_has_proper_metadata(agent):
     assert skill.get("id") == "assessment", "Skill ID should be 'assessment'"
     tags = skill.get("tags", [])
     assert "assessment" in tags or "evaluation" in tags, "Skill should have assessment-related tags"
+
+
+@pytest.mark.asyncio
+async def test_green_agent_get_next_task(agent):
+    """Test that Green Agent can provide tasks after starting an assessment."""
+    # Start an assessment first
+    context_id = uuid4().hex
+    await send_text_message("start", agent, context_id=context_id, streaming=False)
+    
+    # Get next task
+    events = await send_text_message("next", agent, context_id=context_id, streaming=False)
+    
+    assert events, "Agent should respond with at least one event"
+    response_text = extract_response_text(events)
+    
+    # Response should contain task information
+    assert "Task" in response_text, "Response should contain task"
+    assert "Points" in response_text or "points" in response_text.lower(), "Response should mention points"
+
+
+@pytest.mark.asyncio
+async def test_green_agent_submit_answer(agent):
+    """Test that Green Agent can evaluate submitted answers."""
+    context_id = uuid4().hex
+    
+    # Start assessment
+    await send_text_message("start", agent, context_id=context_id, streaming=False)
+    
+    # Get a task
+    await send_text_message("next", agent, context_id=context_id, streaming=False)
+    
+    # Submit an answer
+    events = await send_text_message("submit: 105", agent, context_id=context_id, streaming=False)
+    
+    assert events, "Agent should respond with at least one event"
+    response_text = extract_response_text(events)
+    
+    # Response should contain evaluation result
+    assert "Evaluation" in response_text or "Correct" in response_text or "Incorrect" in response_text, \
+        "Response should contain evaluation result"
+    assert "Points" in response_text or "points" in response_text.lower(), "Response should mention points"

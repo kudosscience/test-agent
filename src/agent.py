@@ -1,7 +1,8 @@
 import json
 import random
+from uuid import uuid4
 from a2a.server.tasks import TaskUpdater
-from a2a.types import Message, TaskState, Part, TextPart, DataPart
+from a2a.types import Message, TaskState, Part, TextPart
 from a2a.utils import get_message_text, new_agent_text_message
 
 from messenger import Messenger
@@ -103,6 +104,12 @@ class Agent:
         if lower_input.startswith("start assessment") or lower_input == "start":
             return self._start_assessment(context_id)
 
+        # Command: Force start a new assessment (discard existing)
+        if lower_input == "start new":
+            if context_id and context_id in self.active_assessments:
+                del self.active_assessments[context_id]
+            return self._start_assessment(context_id)
+
         # Command: Get next task
         if lower_input in ["next", "next task", "get task"]:
             return self._get_next_task(context_id)
@@ -135,8 +142,19 @@ class Agent:
 
     def _start_assessment(self, context_id: str | None) -> str:
         """Initialize a new assessment session."""
+        # Check if an assessment already exists for this context
+        if context_id and context_id in self.active_assessments:
+            state = self.active_assessments[context_id]
+            return f"""⚠️ **Assessment Already in Progress**
+
+You have an active assessment session.
+**Progress:** {len(state["completed"])}/{len(state["tasks"])} tasks completed
+**Score:** {state["score"]}/{state["max_score"]} points
+
+Use `next` to continue, `end` to finish current assessment, or type `start new` to discard current progress and start fresh."""
+        
         if not context_id:
-            context_id = f"session-{random.randint(1000, 9999)}"
+            context_id = f"session-{uuid4().hex[:12]}"
         
         # Shuffle tasks for this session
         tasks = ASSESSMENT_TASKS.copy()
@@ -212,7 +230,7 @@ Submit your answer with `submit: <your answer>` or just type your answer directl
             earned_points = task["points"]
             result = "✅ **Correct!**"
         elif keywords_found > 0:
-            earned_points = int(task["points"] * (keywords_found / total_keywords))
+            earned_points = round(task["points"] * (keywords_found / total_keywords))
             result = f"🟡 **Partially Correct** ({keywords_found}/{total_keywords} criteria met)"
         else:
             earned_points = 0
