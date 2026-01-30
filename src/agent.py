@@ -54,23 +54,35 @@ class Agent:
     def _generate_green_response(self, input_text: str) -> str:
         """Generate an eco-friendly response based on input."""
         # Check for specific topics and provide targeted advice
+        tips = GREEN_TIPS  # Default to all tips
+        
         if any(word in input_text for word in ["water", "shower", "faucet", "hydration"]):
-            tips = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["water", "shower", "faucet", "💧", "🚿"])]
+            filtered = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["water", "shower", "faucet", "💧", "🚿"])]
+            if filtered:
+                tips = filtered
         elif any(word in input_text for word in ["energy", "electric", "power", "light", "bulb"]):
-            tips = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["energy", "electric", "bulb", "unplug", "💡", "🔌"])]
+            filtered = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["energy", "electric", "bulb", "unplug", "💡", "🔌"])]
+            if filtered:
+                tips = filtered
         elif any(word in input_text for word in ["plastic", "recycle", "waste", "garbage", "trash"]):
-            tips = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["plastic", "recycle", "waste", "♻️", "🛍️"])]
+            filtered = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["plastic", "recycle", "waste", "♻️", "🛍️"])]
+            if filtered:
+                tips = filtered
         elif any(word in input_text for word in ["transport", "car", "drive", "commute", "travel"]):
-            tips = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["bike", "walk", "drive", "car", "🚲", "🚗"])]
+            filtered = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["bike", "walk", "drive", "car", "🚲", "🚗"])]
+            if filtered:
+                tips = filtered
         elif any(word in input_text for word in ["food", "eat", "diet", "meat", "vegetable"]):
-            tips = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["food", "meat", "garden", "compost", "🥗", "🌻", "🌿"])]
+            filtered = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["food", "meat", "garden", "compost", "🥗", "🌻", "🌿"])]
+            if filtered:
+                tips = filtered
         elif any(word in input_text for word in ["plant", "tree", "garden", "nature"]):
-            tips = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["tree", "plant", "garden", "🌳", "🌻", "🌱"])]
-        else:
-            tips = GREEN_TIPS
+            filtered = [t for t in GREEN_TIPS if any(w in t.lower() for w in ["tree", "plant", "garden", "🌳", "🌻", "🌱"])]
+            if filtered:
+                tips = filtered
 
         # Select a random tip from the filtered list
-        selected_tip = random.choice(tips) if tips else random.choice(GREEN_TIPS)
+        selected_tip = random.choice(tips)
 
         # Format the response
         response = f"""🌍 **Green Agent Says:**

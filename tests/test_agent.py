@@ -199,6 +199,20 @@ async def test_message(agent, streaming):
 # Add your custom tests here
 
 
+def extract_response_text(events) -> str:
+    """Extract response text from A2A events."""
+    response_text = ""
+    for event in events:
+        match event:
+            case (task, update):
+                if task.artifacts:
+                    for artifact in task.artifacts:
+                        for part in artifact.parts:
+                            if hasattr(part, 'root') and hasattr(part.root, 'text'):
+                                response_text += part.root.text
+    return response_text
+
+
 @pytest.mark.asyncio
 async def test_green_agent_returns_eco_tip(agent):
     """Test that green agent returns an eco-friendly tip."""
@@ -208,21 +222,11 @@ async def test_green_agent_returns_eco_tip(agent):
     assert events, "Agent should respond with at least one event"
     
     # Get the response text
-    response_text = ""
-    for event in events:
-        match event:
-            case (task, update):
-                if task.artifacts:
-                    for artifact in task.artifacts:
-                        for part in artifact.parts:
-                            if hasattr(part, 'root') and hasattr(part.root, 'text'):
-                                response_text += part.root.text
+    response_text = extract_response_text(events)
     
-    # Verify response contains expected green content
-    assert "Green Agent" in response_text or "🌍" in response_text, "Response should be from Green Agent"
-    assert "planet" in response_text.lower() or "environment" in response_text.lower() or any(
-        emoji in response_text for emoji in ["🌱", "🌿", "🌳", "♻️", "💡", "💧", "🚲", "🌻"]
-    ), "Response should contain environmental content"
+    # Verify response contains expected green content format
+    assert "🌍 **Green Agent Says:**" in response_text, "Response should be from Green Agent with proper format"
+    assert "planet" in response_text.lower(), "Response should mention planet"
 
 
 @pytest.mark.asyncio
@@ -232,18 +236,12 @@ async def test_green_agent_water_topic(agent):
     
     assert events, "Agent should respond with at least one event"
     
-    response_text = ""
-    for event in events:
-        match event:
-            case (task, update):
-                if task.artifacts:
-                    for artifact in task.artifacts:
-                        for part in artifact.parts:
-                            if hasattr(part, 'root') and hasattr(part.root, 'text'):
-                                response_text += part.root.text
+    response_text = extract_response_text(events)
     
-    # Response should contain relevant content
+    # Response should contain water-related content
     assert len(response_text) > 0, "Response should not be empty"
+    assert any(word in response_text.lower() for word in ["water", "shower", "faucet", "gallons"]), \
+        "Response should contain water-related content when asking about water conservation"
 
 
 def test_green_agent_card_has_proper_metadata(agent):
@@ -263,4 +261,5 @@ def test_green_agent_card_has_proper_metadata(agent):
     
     skill = skills[0]
     assert skill.get("id") == "green-advice", "Skill ID should be 'green-advice'"
-    assert "environment" in skill.get("tags", []) or "sustainability" in skill.get("tags", []), "Skill should have environmental tags"
+    tags = skill.get("tags", [])
+    assert "environment" in tags and "sustainability" in tags, "Skill should have both environment and sustainability tags"
